@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "763588143758",
+    "project_id": "swift-dispatch-app-719ca",
+    "storage_bucket": "swift-dispatch-app-719ca.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:763588143758:android:626cf306db4c9d3cfb37df",
+        "android_client_info": {
+          "package_name": "com.example.myapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBDYYQp0aKIyIPnHXTDvtuWY7QiDs1wW_c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
