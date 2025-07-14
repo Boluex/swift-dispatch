@@ -31,22 +31,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         'pickupContact': _pickupContactController.text.trim(),
         'receiverContact': _receiverDetailsController.text.trim(),
         'itemDetails': _itemDetailsController.text.trim(),
-        'vehicleType': _vehicleType,
-        'isExpress': _isExpress.toString(),
       };
-      // TODO: Here you would also handle uploading the _selectedImages
+      
       Navigator.push(context, MaterialPageRoute(builder: (context) => NearbyFirmsScreen(orderDetails: orderDetails)));
     }
-  }
-
-  @override
-  void dispose() {
-    _pickupLocationController.dispose();
-    _deliveryLocationController.dispose();
-    _pickupContactController.dispose();
-    _receiverDetailsController.dispose();
-    _itemDetailsController.dispose();
-    super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
@@ -66,44 +54,64 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       ],
     )));
   }
+  
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 24.0, bottom: 8.0, left: 4.0),
+      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, String hint, {TextInputType keyboardType = TextInputType.text}) {
+    return TextFormField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: Colors.grey[200],
+        floatingLabelBehavior: FloatingLabelBehavior.never,
+      ),
+      keyboardType: keyboardType,
+      validator: (v) => (v == null || v.isEmpty) ? '$label is required' : null,
+    );
+  }
+  
+  @override
+  void dispose() {
+    _pickupLocationController.dispose();
+    _deliveryLocationController.dispose();
+    _pickupContactController.dispose();
+    _receiverDetailsController.dispose();
+    _itemDetailsController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Delivery Request')),
+      appBar: AppBar(title: const Text('Create a Delivery')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- SIMPLIFIED TEXT FIELDS ---
-              TextFormField(
-                controller: _pickupLocationController,
-                decoration: const InputDecoration(labelText: 'Pickup Location', hintText: 'e.g., 24 Allen Avenue - Ikeja', border: OutlineInputBorder()),
-                validator: (v) => v!.isEmpty ? 'Please enter a pickup location' : null
-              ),
+              _buildSectionHeader("Where to?"),
+              _buildTextField(_pickupLocationController, "Pickup Location", "e.g., 123 Allen Avenue - Ikeja"),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _deliveryLocationController,
-                decoration: const InputDecoration(labelText: 'Delivery Location', hintText: 'e.g., 123 Yaba Road - Sabo', border: OutlineInputBorder()),
-                validator: (v) => v!.isEmpty ? 'Please enter a delivery location' : null
-              ),
-              // --- END OF SIMPLIFIED FIELDS ---
+              _buildTextField(_deliveryLocationController, "Delivery Location", "e.g., Unilag Main Gate - Yaba"),
 
-              const SizedBox(height: 24),
-              const Text("Delivery Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const Divider(),
+              _buildSectionHeader("Who's Involved?"),
+              _buildTextField(_pickupContactController, "Sender's Name & Phone", "John Doe - 080...", keyboardType: TextInputType.text),
               const SizedBox(height: 16),
-              TextFormField(controller: _pickupContactController, decoration: const InputDecoration(labelText: 'Pickup Contact (Name & Phone)', border: OutlineInputBorder()), validator: (v) => v!.isEmpty ? 'Field required' : null),
+              _buildTextField(_receiverDetailsController, "Receiver's Name & Phone", "Jane Smith - 090...", keyboardType: TextInputType.text),
+
+              _buildSectionHeader("What's the Item?"),
+              _buildTextField(_itemDetailsController, "Item Description", "e.g., Small box, contains shoes"),
               const SizedBox(height: 16),
-              TextFormField(controller: _receiverDetailsController, decoration: const InputDecoration(labelText: 'Receiver Contact (Name & Phone)', border: OutlineInputBorder()), validator: (v) => v!.isEmpty ? 'Field required' : null),
-              const SizedBox(height: 16),
-              TextFormField(controller: _itemDetailsController, decoration: const InputDecoration(labelText: 'Item Details (e.g., Small Box, 2kg)', border: OutlineInputBorder()), validator: (v) => v!.isEmpty ? 'Field required' : null),
-              
-              const SizedBox(height: 16),
-              // --- ADDED BACK THE MISSING UI WIDGETS ---
               const Text("Item Photos (Optional, Max 2)", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
               const SizedBox(height: 8),
               _selectedImages.isEmpty
@@ -119,27 +127,33 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                         Positioned(top: -10, right: -10, child: IconButton(icon: const Icon(Icons.cancel, color: Colors.red), onPressed: () => setState(() => _selectedImages.removeAt(index)))),
                       ]);
                     })),
-              
-              const SizedBox(height: 16),
+
+              _buildSectionHeader("Preferences"),
               DropdownButtonFormField<String>(
                 value: _vehicleType,
-                decoration: InputDecoration(labelText: 'Vehicle Type', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), prefixIcon: const Icon(Icons.two_wheeler)),
+                decoration: InputDecoration(labelText: 'Vehicle Type', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none), filled: true, fillColor: Colors.grey[200], prefixIcon: const Icon(Icons.two_wheeler)),
                 items: ['Bike', 'Car', 'Van'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                 onChanged: (v) => setState(() => _vehicleType = v!),
               ),
               const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('Express Delivery'),
-                subtitle: const Text('Prioritize this delivery for a higher fee.'),
-                value: _isExpress,
-                onChanged: (v) => setState(() => _isExpress = v),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade300)),
-                secondary: const Icon(Icons.flash_on),
+              Container(
+                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+                child: SwitchListTile(
+                  title: const Text('Express Delivery'),
+                  subtitle: const Text('Prioritize this delivery for a higher fee.'),
+                  value: _isExpress,
+                  onChanged: (v) => setState(() => _isExpress = v),
+                  secondary: const Icon(Icons.flash_on),
+                ),
               ),
-              // --- END OF ADDED WIDGETS ---
 
               const SizedBox(height: 32),
-              ElevatedButton(onPressed: _findDeliveryFirm, child: const Text('Find Delivery Firm', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold))),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50), backgroundColor: Colors.black, foregroundColor: Colors.white),
+                onPressed: _findDeliveryFirm,
+                child: const Text('FIND A RIDER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

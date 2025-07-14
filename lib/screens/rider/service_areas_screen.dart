@@ -17,6 +17,7 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
   final _baseFeeController = TextEditingController();
   final _ratePerKmController = TextEditingController();
   bool _showAdvancedPricing = false;
+  bool _isSaving = false;
 
   Stream<List<Map<String, dynamic>>> _getServiceAreasStream() {
     final user = supabase.auth.currentUser;
@@ -29,21 +30,25 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    setState(() { _isSaving = true; });
+
     try {
       await supabase.from('service_areas').insert({
         'rider_id': user.id,
-        'from_zone': _fromZoneController.text.trim().toLowerCase(), // Save as lowercase for easier matching
+        'from_zone': _fromZoneController.text.trim().toLowerCase(),
         'to_zone': _toZoneController.text.trim().toLowerCase(),
         'base_fee': double.parse(_baseFeeController.text.trim()),
         'rate_per_km': double.tryParse(_ratePerKmController.text.trim()) ?? 100.0,
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Route added!'), backgroundColor: Colors.green));
         Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Route added successfully!'), backgroundColor: Colors.green));
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add route: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) setState(() { _isSaving = false; });
     }
   }
 
@@ -66,11 +71,14 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextFormField(controller: _fromZoneController, decoration: const InputDecoration(labelText: 'From Zone (e.g., Ikeja)'), validator: (v) => v!.isEmpty ? 'Required' : null),
-                    TextFormField(controller: _toZoneController, decoration: const InputDecoration(labelText: 'To Zone (e.g., Surulere)'), validator: (v) => v!.isEmpty ? 'Required' : null),
+                    TextFormField(controller: _fromZoneController, decoration: const InputDecoration(labelText: 'From Zone (e.g., ikeja)'), validator: (v) => v!.isEmpty ? 'Required' : null),
+                    TextFormField(controller: _toZoneController, decoration: const InputDecoration(labelText: 'To Zone (e.g., surulere)'), validator: (v) => v!.isEmpty ? 'Required' : null),
                     TextFormField(controller: _baseFeeController, decoration: const InputDecoration(labelText: 'Base Fee (₦)'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
                     if (_showAdvancedPricing)
-                      TextFormField(controller: _ratePerKmController, decoration: const InputDecoration(labelText: 'Rate per KM (₦)'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: TextFormField(controller: _ratePerKmController, decoration: const InputDecoration(labelText: 'Rate per KM (₦)'), keyboardType: TextInputType.number, validator: (v) => v!.isEmpty ? 'Required' : null),
+                      ),
                     TextButton(
                       onPressed: () => setDialogState(() => _showAdvancedPricing = !_showAdvancedPricing),
                       child: Text(_showAdvancedPricing ? 'Hide Advanced Pricing' : 'Set Custom Rate per KM'),
@@ -81,7 +89,7 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
             ),
             actions: [
               TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-              ElevatedButton(onPressed: _addServiceArea, child: const Text('Add Route')),
+              _isSaving ? const CircularProgressIndicator() : ElevatedButton(onPressed: _addServiceArea, child: const Text('Add Route')),
             ],
           );
         },
@@ -92,7 +100,8 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Routes & Pricing')),
+      appBar: AppBar(title: const Text('My Service Routes')),
+      backgroundColor: Colors.grey[100],
       body: StreamBuilder<List<Map<String, dynamic>>>(
         stream: _getServiceAreasStream(),
         builder: (context, snapshot) {
@@ -105,11 +114,12 @@ class _ServiceAreasScreenState extends State<ServiceAreasScreen> {
             itemBuilder: (context, index) {
               final area = areas[index];
               return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 child: ListTile(
-                  leading: const Icon(Icons.route_outlined),
-                  title: Text("From: ${area['from_zone']} To: ${area['to_zone']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text('Base: ₦${area['base_fee']} | Per KM: ₦${area['rate_per_km']}'),
+                  leading: const Icon(Icons.route_outlined, color: Colors.blueAccent),
+                  title: Text("${area['from_zone'].toString().toUpperCase()}  ➔  ${area['to_zone'].toString().toUpperCase()}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text('Base: ₦${area['base_fee']} | Rate/km: ₦${area['rate_per_km']}'),
                   trailing: IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () async {
                     await supabase.from('service_areas').delete().eq('id', area['id']);
                   }),

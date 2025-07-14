@@ -1,7 +1,7 @@
 // lib/screens/rider/rider_active_trip_screen.dart
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart'; // <-- THE MOST IMPORTANT MISSING IMPORT
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:myapp/main.dart'; // For supabase instance
+import 'package:myapp/main.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -40,9 +40,11 @@ class _RiderActiveTripScreenState extends State<RiderActiveTripScreen> {
       
       await supabase.from('orders').update(updateData).eq('id', widget.orderId);
       
-      setState(() { _status = newStatus; });
-      if(newStatus == 'delivered' && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Delivery Completed!"), backgroundColor: Colors.green,));
+      if(mounted) {
+        setState(() { _status = newStatus; });
+        if(newStatus == 'delivered') {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Delivery Completed!"), backgroundColor: Colors.green));
+        }
       }
     } catch (e) {
       if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Failed to update status: $e")));
@@ -77,30 +79,59 @@ class _RiderActiveTripScreenState extends State<RiderActiveTripScreen> {
     if (_isUploading) return const Center(child: CircularProgressIndicator());
     
     switch (_status) {
-      case 'pending': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green), onPressed: () => _updateOrderStatus('accepted'), child: Text('ACCEPT ORDER (₦${widget.orderData['total_price']})'));
-      case 'accepted': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue), onPressed: () => _updateOrderStatus('pickedUp'), child: const Text('CONFIRM ITEM PICKUP'));
-      case 'pickedUp': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange), onPressed: _handleCompleteDelivery, child: const Text('COMPLETE DELIVERY (TAKE PHOTO)'));
-      case 'delivered': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.grey), onPressed: () => Navigator.of(context).pop(), child: const Text('TRIP COMPLETED - GO BACK'));
-      default: return const Text('Status Unknown');
+      case 'pending': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.green, minimumSize: const Size(double.infinity, 50)), onPressed: () => _updateOrderStatus('accepted'), child: Text('ACCEPT ORDER (EARN ₦${(widget.orderData['total_price'] * 0.9).toStringAsFixed(0)})', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)));
+      case 'accepted': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, minimumSize: const Size(double.infinity, 50)), onPressed: () => _updateOrderStatus('pickedUp'), child: const Text('CONFIRM ITEM PICKUP', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)));
+      case 'pickedUp': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, minimumSize: const Size(double.infinity, 50)), onPressed: _handleCompleteDelivery, child: const Text('COMPLETE DELIVERY (TAKE PHOTO)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)));
+      case 'delivered': return ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.grey, minimumSize: const Size(double.infinity, 50)), onPressed: () => Navigator.of(context).pop(), child: const Text('TRIP COMPLETED - GO BACK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)));
+      default: return const SizedBox.shrink();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Delivery Details')),
+      appBar: AppBar(title: const Text('Active Delivery')),
       body: Column(
         children: [
-          Expanded(flex: 2, child: FlutterMap(options: const MapOptions(initialCenter: LatLng(6.6018, 3.3515), initialZoom: 13.0), children: [TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png')])),
-          Expanded(flex: 3, child: Padding(padding: const EdgeInsets.all(16.0), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            Text('TRIP DETAILS', style: Theme.of(context).textTheme.titleMedium),
-            const Divider(),
-            Card(child: ListTile(title: Text('From: ${widget.orderData['pickup_location']}'), subtitle: Text('Contact: ${widget.orderData['pickup_contact']}'))),
-            Card(child: ListTile(title: Text('To: ${widget.orderData['delivery_location']}'), subtitle: Text('Contact: ${widget.orderData['receiver_contact']}'))),
-            const Spacer(),
-            _buildStatusButton(),
-            const SizedBox(height: 16),
-          ]))),
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.35,
+            child: FlutterMap(
+              options: const MapOptions(initialCenter: LatLng(6.6018, 3.3515), initialZoom: 13.0),
+              children: [TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png')],
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('TRIP DETAILS', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                  const SizedBox(height: 16),
+                  Card(
+                    elevation: 0, color: Colors.blue.withAlpha(25),
+                    child: ListTile(
+                      leading: const Icon(Icons.arrow_upward_rounded, color: Colors.blue),
+                      title: const Text("PICKUP", style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(widget.orderData['pickup_location']),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0, color: Colors.green.withAlpha(25),
+                    child: ListTile(
+                      leading: const Icon(Icons.arrow_downward_rounded, color: Colors.green),
+                      title: const Text("DROP OFF", style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(widget.orderData['delivery_location']),
+                    ),
+                  ),
+                  const Spacer(),
+                  _buildStatusButton(),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
